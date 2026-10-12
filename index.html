@@ -49,7 +49,7 @@ function rotatePlaced(id){
  // Cycle the four possible orientations around the first half.
  const v=old.j-old.i===C,variants=[[false,false],[true,false],[false,true],[true,true]];
  let at=variants.findIndex(([x,y])=>x===v&&y===old.flip);
- for(let n=1;n<=4;n++){let [nv,nf]=variants[(at+n)%4];let start=old.i;if(tryMove(id,start,nv,nf)){render();checkWin();save();message('Domino rotated. Drag it to reposition.');return}}
+ for(let n=1;n<4;n++){let [nv,nf]=variants[(at+n)%4];let start=old.i;if(tryMove(id,start,nv,nf)){render();checkWin();save();message('Domino rotated. Drag it to reposition.');return}}
  message('There is not enough space to rotate that domino here. Drag it to another location.')
 }
 function ghostMake(id,v,f){const p=pieces[id],g=document.createElement('div');g.className='drag-ghost'+(v?' vertical':'');
