@@ -16,7 +16,7 @@
 <header class="top"><div><div class="brand">◉ Pips Unlimited</div><div class="sub">Endless domino logic puzzles · Traditional pips edition</div></div><div class="toolbar"><select id="difficulty" aria-label="Difficulty"><option value="easy">Easy · 4 × 4</option><option value="medium">Medium · 4 × 6</option><option value="hard">Hard · 6 × 6</option><option value="expert">Expert · 6 × 8</option></select><button id="new" class="primary">New puzzle ↻</button></div></header>
 <section class="metrics"><span id="puzzle">Puzzle #1</span><span id="placed">0 placed</span><span id="timer">00:00</span><span id="best">Best: —</span></section>
 <div class="main"><section class="card board-area"><div class="board-scroll"><div id="board" class="board" aria-label="Puzzle board"></div></div><div class="legend"><span>Σ sum</span><span>＝ equal</span><span>≠ different</span><span>＜ less than</span><span>＞ greater than</span></div><div style="text-align:center;margin-top:12px;font-size:14px;font-weight:800">Domino tray</div><div id="rack" class="racks"></div><div class="selection" id="selection">Drag dominoes onto the board. Tap any domino to rotate it.</div><div class="status" id="status" role="status" aria-live="polite"></div></section>
-<aside class="card side"><h2>Your game stats</h2><div class="statgrid"><div class="stat"><b id="solved">0</b><span>Solved</span></div><div class="stat"><b id="streak">0</b><span>Current streak</span></div><div class="stat"><b id="played">0</b><span>Started</span></div><div class="stat"><b id="hintcount">0</b><span>Hints used (this board)</span></div></div><h2 style="margin-top:20px">Recent wins</h2><ol class="history" id="history"><li>No puzzles solved yet.</li></ol><details class="help"><summary>How to play</summary><p>Cover every square with the dominoes from the tray. Every colored region has a rule that must hold when completed. Dots are pip values (a blank half is zero).</p><p>Drag a domino from the tray toward the board. The dotted outlines mark each clue region. The full domino magnetically previews the nearest available two-square position; release to place it. Drag placed dominoes to move them, or drag them off the board to return them to the tray. Tap any domino to rotate it through four orientations, including reversing the ends. You can also select a tray domino and tap an empty square to place it.</p><p>Green border: completed region meets its rule. Red border: the rule is broken or already impossible.</p></details><button id="resetstats" style="margin-top:20px;font-size:12px">Clear statistics</button></aside></div><div class="foot">Your puzzles, progress and records are saved in this browser. Built as an independent Pips-style game, not affiliated with The New York Times.</div>
+<aside class="card side"><h2>Your game stats</h2><div class="statgrid"><div class="stat"><b id="solved">0</b><span>Solved</span></div><div class="stat"><b id="streak">0</b><span>Current streak</span></div><div class="stat"><b id="played">0</b><span>Started</span></div><div class="stat"><b id="hintcount">0</b><span>Hints used (this board)</span></div></div><h2 style="margin-top:20px">Recent wins</h2><ol class="history" id="history"><li>No puzzles solved yet.</li></ol><details class="help"><summary>How to play</summary><p>Cover every square with the dominoes from the tray. Every outlined region has a rule that must hold when completed. Plain gray squares accept any pip value. Dots are pip values (a blank half is zero).</p><p>Drag a domino from the tray toward the board. The dotted outlines mark each clue region. The full domino magnetically previews the nearest available two-square position; release to place it. Drag placed dominoes to move them, or drag them off the board to return them to the tray. Tap any domino to rotate it through four orientations, including reversing the ends. You can also select a tray domino and tap an empty square to place it.</p><p>Green border: completed region meets its rule. Red border: the rule is broken or already impossible.</p></details><button id="resetstats" style="margin-top:20px;font-size:12px">Clear statistics</button></aside></div><div class="foot">Your puzzles, progress and records are saved in this browser. Built as an independent Pips-style game, not affiliated with The New York Times.</div>
 </main><script>
 (()=>{'use strict';
 const $=id=>document.getElementById(id), K='pips-unlimited-v2', colors=['#d4e5fc','#fae2b5','#d6edd4','#e9daf6','#f6d6d9','#c9ece9','#f7eabb','#dcdff0','#e4efcb','#f4dccc','#c9ddf4','#efdae9','#dce9c5','#f2e2d1','#c6e6e9','#ebe6c5','#d9e6f7','#e7dce8','#d7efd9','#f7e1c7','#d9e6f3','#ede1d1','#dceacf','#f3dbe5'];
@@ -28,18 +28,111 @@ function rng(seed){return()=>{seed=(seed+0x6D2B79F5)|0;let t=Math.imul(seed^seed
 function shuffle(xs){for(let i=xs.length-1;i>0;i--){let j=Math.floor(rand()*(i+1));[xs[i],xs[j]]=[xs[j],xs[i]]}return xs}
 function adj(i){let r=(i/C)|0,c=i%C,a=[];if(r>0)a.push(i-C);if(r<R-1)a.push(i+C);if(c>0)a.push(i-1);if(c<C-1)a.push(i+1);return a}
 function tileBoard(){let match=Array(R*C).fill(-1);function rec(){let first=match.indexOf(-1);if(first<0)return true;let options=shuffle(adj(first).filter(j=>match[j]<0));for(const j of options){match[first]=j;match[j]=first;if(rec())return true;match[first]=match[j]=-1}return false}return rec()?match:null}
-function generate(){difficulty=$('difficulty').value;[R,C]=dims[difficulty];rand=rng((Math.random()*2**32)>>>0);let match=tileBoard();if(!match)throw Error('Could not tile board');let solution=Array(R*C).fill(0);pieces=[];let combos=[];for(let a=0;a<=6;a++)for(let b=a;b<=6;b++)combos.push([a,b]);shuffle(combos);let seen=new Set();for(let i=0;i<R*C;i++){if(seen.has(i))continue;let j=match[i];seen.add(i);seen.add(j);let [a,b]=combos.pop();if(rand()<.5)[a,b]=[b,a];solution[i]=a;solution[j]=b;pieces.push({a,b,sol:[i,j]})}shuffle(pieces);pieces.forEach((p,i)=>p.id=i);
-regions=[];let unassigned=new Set(solution.map((_,i)=>i)),maxSize={easy:3,medium:4,hard:5,expert:6}[difficulty];while(unassigned.size){let a=[...unassigned],first=a[Math.floor(rand()*a.length)],group=[first];unassigned.delete(first);let size=1+Math.floor(rand()*maxSize);while(group.length<size){let next=shuffle([...new Set(group.flatMap(adj))].filter(x=>unassigned.has(x)));if(!next.length)break;let x=next[0];group.push(x);unassigned.delete(x)}let values=group.map(i=>solution[i]),sum=values.reduce((a,b)=>a+b,0),eq=values.every(v=>v===values[0]),diff=new Set(values).size===values.length;
-let possible=['sum','sum','sum'];if(difficulty!=='easy'||rand()<.45)possible.push('less','greater');if(eq&&group.length>1)possible.push('equal','equal','equal');if(diff&&group.length>1)possible.push('different','different','different');let type=possible[Math.floor(rand()*possible.length)],target=sum;if(type==='less')target=sum+1+Math.floor(rand()*({easy:2,medium:3,hard:4,expert:5}[difficulty]));if(type==='greater'){if(sum===0){type='sum';target=0}else target=Math.max(0,sum-1-Math.floor(rand()*2))}
-regions.push({cells:group,type,target,color:colors[regions.length%colors.length]})}
-placement=pieces.map(()=>null);trayOrient={};cells=Array(R*C).fill(null);selection=0;vertical=false;flip=false;undos=[];elapsed=0;start=Date.now();ended=false;hints=0;hintCell=-1;store.serial++;store.started++;render();message('Drag dominoes into place. Tap tray tiles to rotate; drag off the board to return.');save()}
+function generate(){
+ difficulty=$('difficulty').value;[R,C]=dims[difficulty];rand=rng((Math.random()*2**32)>>>0);
+ const match=tileBoard();if(!match)throw Error('Unable to tile board');
+ const n=R*C,edges=[];
+ for(let i=0;i<n;i++){if(i%C<C-1)edges.push([i,i+1]);if(Math.floor(i/C)<R-1)edges.push([i,i+C])}
+ shuffle(edges);
+ // Reserve adjacent equality clues, preferably across distinct dominoes.
+ edges.sort((a,b)=>Number(match[a[0]]===a[1])-Number(match[b[0]]===b[1]));
+ const equalWanted={easy:2,medium:3,hard:4,expert:5}[difficulty];
+ const reserved=new Set(),equalGroups=[];
+ for(const [i,j] of edges){
+  if(reserved.has(i)||reserved.has(j))continue;
+  reserved.add(i);reserved.add(j);equalGroups.push([i,j]);
+  if(equalGroups.length===equalWanted)break
+ }
+ const blankWanted={easy:1,medium:2,hard:3,expert:4}[difficulty];
+ const available=shuffle(Array.from({length:n},(_,i)=>i).filter(i=>!reserved.has(i)));
+ const freeCells=available.slice(0,blankWanted);
+ freeCells.forEach(i=>reserved.add(i));
+ const tileSlots=[],seen=new Set();
+ for(let i=0;i<n;i++){if(seen.has(i))continue;let j=match[i];seen.add(i);seen.add(j);tileSlots.push([i,j])}
+ const allPairs=[];for(let a=0;a<=6;a++)for(let b=a;b<=6;b++)allPairs.push([a,b]);
+ let solution=null;
+ // Constrained-first search ensures one copy of each unordered domino pair.
+ for(let attempt=0;attempt<80&&!solution;attempt++){
+  const preset=Array(n).fill(null);
+  for(const g of equalGroups){const v=Math.floor(rand()*7);g.forEach(i=>preset[i]=v)}
+  const slots=tileSlots.slice().sort((a,b)=>{
+   const count=t=>t.filter(i=>preset[i]!==null).length;
+   return count(b)-count(a)
+  });
+  const candidate=Array(n).fill(null),used=new Set();let nodes=0;
+  function fill(k){
+   if(k===slots.length)return true;
+   if(++nodes>15000)return false;
+   const [i,j]=slots[k],options=[];
+   for(const [a,b] of allPairs){
+    const orientations=a===b?[[a,b]]:[[a,b],[b,a]];
+    for(const [x,y] of orientations){
+     if(preset[i]!==null&&preset[i]!==x)continue;
+     if(preset[j]!==null&&preset[j]!==y)continue;
+     const key=a*7+b;
+     if(!used.has(key))options.push([x,y,key])
+    }
+   }
+   shuffle(options);
+   for(const [a,b,key] of options){
+    used.add(key);candidate[i]=a;candidate[j]=b;
+    if(fill(k+1))return true;
+    used.delete(key);candidate[i]=candidate[j]=null
+   }
+   return false
+  }
+  if(fill(0))solution=candidate
+ }
+ if(!solution)throw Error('Unable to create unique dominoes for equality regions');
+ pieces=tileSlots.map(([i,j])=>({a:solution[i],b:solution[j],sol:[i,j]}));
+ shuffle(pieces);pieces.forEach((p,i)=>p.id=i);
+ regions=equalGroups.map(cells=>({cells,type:'equal',target:0,color:null}));
+ for(const i of freeCells)regions.push({cells:[i],type:'free',target:0,color:'#edf0f5'});
+ let unassigned=new Set(Array.from({length:n},(_,i)=>i).filter(i=>!reserved.has(i)));
+ const maxSize={easy:3,medium:4,hard:5,expert:6}[difficulty];
+ while(unassigned.size){
+  const a=[...unassigned],first=a[Math.floor(rand()*a.length)],group=[first];unassigned.delete(first);
+  const size=2+Math.floor(rand()*Math.max(1,maxSize-1));
+  while(group.length<size){
+   const next=shuffle([...new Set(group.flatMap(adj))].filter(i=>unassigned.has(i)));
+   if(!next.length)break;
+   const x=next[0];group.push(x);unassigned.delete(x)
+  }
+  const values=group.map(i=>solution[i]),sum=values.reduce((a,b)=>a+b,0);
+  const eq=values.every(v=>v===values[0]),diff=new Set(values).size===values.length;
+  let type,target=sum;
+  if(group.length===1){
+   const mode=Math.floor(rand()*5);
+   if(mode===0){type='free';target=0}
+   else if(mode<=2){type='sum'}
+   else if(mode===3&&sum<6){type='greater';target=Math.max(0,sum-1)}
+   else if(sum>0){type='less';target=sum+1}
+   else type='sum'
+  }else{
+   const possible=['sum','sum','sum','less','greater'];
+   if(eq)possible.push('equal','equal','equal','equal');
+   if(diff)possible.push('different','different');
+   type=possible[Math.floor(rand()*possible.length)];
+   if(type==='less')target=sum+1+Math.floor(rand()*3);
+   if(type==='greater'){if(sum===0){type='sum';target=0}else target=Math.max(0,sum-1-Math.floor(rand()*2))}
+  }
+  if(type==='less'&&group.length===1&&target>6)type='free';
+  if(type==='greater'&&group.length===1&&target<0)type='free';
+  regions.push({cells:group,type,target,color:null})
+ }
+ let colored=0;regions.forEach(g=>{g.color=g.type==='free'?'#edf0f5':colors[(colored++)%colors.length]});
+ placement=pieces.map(()=>null);trayOrient={};cells=Array(n).fill(null);
+ selection=0;vertical=false;flip=false;undos=[];elapsed=0;start=Date.now();
+ ended=false;hints=0;hintCell=-1;store.serial++;store.started++;
+ render();message('Drag dominoes into place. Tap tray tiles to rotate; drag off the board to return.');save()
+}
 function restore(){let a=store.active;if(!a||!dims[a.difficulty])return false;try{({difficulty,R,C,regions,pieces,placement,selection,vertical,flip,elapsed,ended,hints}=a);$('difficulty').value=difficulty;start=Date.now();trayOrient=a.trayOrient||{};undos=[];rebuild();render();return true}catch(e){return false}}
 function seconds(){return elapsed+(ended?0:Math.floor((Date.now()-start)/1000))}function time(s){return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}
 function rebuild(){cells=Array(R*C).fill(null);placement.forEach((p,id)=>{if(p){let tile=pieces[id];cells[p.i]={id,value:p.flip?tile.b:tile.a};cells[p.j]={id,value:p.flip?tile.a:tile.b}}})}
-function state(reg){let vals=reg.cells.map(i=>cells[i]?.value),known=vals.filter(x=>x!==undefined),full=known.length===vals.length,sum=known.reduce((a,b)=>a+b,0);switch(reg.type){case'sum':return sum>reg.target?'invalid':full?(sum===reg.target?'valid':'invalid'):'';case'less':return sum>=reg.target?'invalid':full?'valid':'';case'greater':return full?(sum>reg.target?'valid':'invalid'):'';case'equal':return new Set(known).size>1?'invalid':full?'valid':'';case'different':return new Set(known).size!==known.length?'invalid':full?'valid':''}return ''}
+function state(reg){let vals=reg.cells.map(i=>cells[i]?.value),known=vals.filter(x=>x!==undefined),full=known.length===vals.length,sum=known.reduce((a,b)=>a+b,0);switch(reg.type){case'free':return full?'valid':'';case'sum':return sum>reg.target?'invalid':full?(sum===reg.target?'valid':'invalid'):'';case'less':return sum>=reg.target?'invalid':full?'valid':'';case'greater':return full?(sum>reg.target?'valid':'invalid'):'';case'equal':return new Set(known).size>1?'invalid':full?'valid':'';case'different':return new Set(known).size!==known.length?'invalid':full?'valid':''}return ''}
 const pos={tl:[24,24],tr:[76,24],ml:[24,50],mr:[76,50],bl:[24,76],br:[76,76],center:[50,50],tm:[50,24],bm:[50,76]};const patterns={0:[],1:['center'],2:['tl','br'],3:['tl','center','br'],4:['tl','tr','bl','br'],5:['tl','tr','center','bl','br'],6:['tl','ml','bl','tr','mr','br']};
 function face(v){let w=document.createElement('span');w.className='pipface';for(const loc of patterns[v]){let dot=document.createElement('span');dot.className='pip';dot.style.left=pos[loc][0]+'%';dot.style.top=pos[loc][1]+'%';w.append(dot)}return w}
-function rule(g){return ({sum:'Σ '+g.target,less:'< '+g.target,greater:'> '+g.target,equal:'=',different:'≠'})[g.type]}
+function rule(g){return ({sum:'Σ '+g.target,less:'< '+g.target,greater:'> '+g.target,equal:'=',different:'≠',free:''})[g.type]}
 // Trace each region's actual outside boundary, including its bends, as one dotted outline.
 function drawRegionOutlines(unit){
  const ns='http://www.w3.org/2000/svg', svg=document.createElementNS(ns,'svg');
@@ -50,6 +143,7 @@ function drawRegionOutlines(unit){
  const point=(vertex)=>[pad-gap/2+vertex[1]*step,pad-gap/2+vertex[0]*step];
  const code=(v)=>v[0]+','+v[1];
  regions.forEach((g)=>{
+  if(g.type==='free')return;
   const members=new Set(g.cells),edges=[];
   function add(a,b){edges.push({a,b})}
   for(const i of g.cells){
@@ -80,7 +174,7 @@ function drawRegionOutlines(unit){
  });
  $('board').append(svg)
 }
-function render(){let map=Array(R*C);regions.forEach((g,k)=>g.cells.forEach(i=>map[i]=k));let unit=Math.max(31,Math.min(56,Math.floor((Math.min(window.innerWidth-54,590)-12-(C-1)*4)/C),Math.floor((window.innerHeight-(R===6?340:355))/R)));$('board').style.setProperty('--unit',unit+'px');$('board').style.gridTemplateColumns=`repeat(${C},${unit}px)`;$('board').replaceChildren();for(let i=0;i<R*C;i++){let reg=regions[map[i]],b=document.createElement('button');b.className='cell '+state(reg)+(hintCell===i?' hint':'');b.style.background=reg.color;b.setAttribute('aria-label',`Row ${Math.floor(i/C)+1}, column ${i%C+1}`);b.dataset.cell=i;b.onclick=()=>{if(Date.now()<suppressClickUntil)return;place(i)};if(i===reg.cells[0]){let tag=document.createElement('span');tag.className='clue';tag.textContent=rule(reg);b.append(tag)}if(cells[i]){let half=document.createElement('div');half.className='placed-half';half.append(face(cells[i].value));b.append(half)}$('board').append(b)}drawRegionOutlines(unit);let rack=$('rack');rack.style.setProperty('--tray-cols',C===4?4:6);rack.replaceChildren();pieces.forEach((p,id)=>{let b=document.createElement('button');const o=trayOrient[id]||0;b.className='tile'+(o%2===1?' vertical':'')+(selection===id?' selected':'')+(placement[id]?' used':'');b.setAttribute('aria-label',`Domino ${p.a} and ${p.b}`);b.dataset.tile=id;b.onclick=()=>{if(Date.now()<suppressClickUntil||placement[id])return;selection=id;trayOrient[id]=((trayOrient[id]||0)+1)%4;vertical=trayOrient[id]%2===1;flip=trayOrient[id]>=2;hintCell=-1;render();save()};for(const n of (o>=2?[p.b,p.a]:[p.a,p.b])){let half=document.createElement('span');half.className='face';half.append(face(n));b.append(half)}let slot=document.createElement('div');slot.className='tray-slot';slot.append(b);rack.append(slot)});$('placed').textContent=placement.filter(Boolean).length+' / '+pieces.length+' placed';$('puzzle').textContent=difficulty[0].toUpperCase()+difficulty.slice(1)+' · Puzzle #'+store.serial;$('selection').textContent=selection===null?'All dominoes placed.':`Tap a tray domino to rotate it; drag it onto the board`;updateStats()}
+function render(){let map=Array(R*C);regions.forEach((g,k)=>g.cells.forEach(i=>map[i]=k));let unit=Math.max(31,Math.min(56,Math.floor((Math.min(window.innerWidth-54,590)-12-(C-1)*4)/C),Math.floor((window.innerHeight-(R===6?340:355))/R)));$('board').style.setProperty('--unit',unit+'px');$('board').style.gridTemplateColumns=`repeat(${C},${unit}px)`;$('board').replaceChildren();for(let i=0;i<R*C;i++){let reg=regions[map[i]],b=document.createElement('button');b.className='cell '+state(reg)+(hintCell===i?' hint':'');b.style.background=reg.color;b.setAttribute('aria-label',`Row ${Math.floor(i/C)+1}, column ${i%C+1}`);b.dataset.cell=i;b.onclick=()=>{if(Date.now()<suppressClickUntil)return;place(i)};if(i===reg.cells[0]&&reg.type!=='free'){let tag=document.createElement('span');tag.className='clue';tag.textContent=rule(reg);b.append(tag)}if(cells[i]){let half=document.createElement('div');half.className='placed-half';half.append(face(cells[i].value));b.append(half)}$('board').append(b)}drawRegionOutlines(unit);let rack=$('rack');rack.style.setProperty('--tray-cols',C===4?4:6);rack.replaceChildren();pieces.forEach((p,id)=>{let b=document.createElement('button');const o=trayOrient[id]||0;b.className='tile'+(o%2===1?' vertical':'')+(selection===id?' selected':'')+(placement[id]?' used':'');b.setAttribute('aria-label',`Domino ${p.a} and ${p.b}`);b.dataset.tile=id;b.onclick=()=>{if(Date.now()<suppressClickUntil||placement[id])return;selection=id;trayOrient[id]=((trayOrient[id]||0)+1)%4;vertical=trayOrient[id]%2===1;flip=trayOrient[id]>=2;hintCell=-1;render();save()};for(const n of (o>=2?[p.b,p.a]:[p.a,p.b])){let half=document.createElement('span');half.className='face';half.append(face(n));b.append(half)}let slot=document.createElement('div');slot.className='tray-slot';slot.append(b);rack.append(slot)});$('placed').textContent=placement.filter(Boolean).length+' / '+pieces.length+' placed';$('puzzle').textContent=difficulty[0].toUpperCase()+difficulty.slice(1)+' · Puzzle #'+store.serial;$('selection').textContent=selection===null?'All dominoes placed.':`Tap a tray domino to rotate it; drag it onto the board`;updateStats()}
 function message(t,win=false){$('status').textContent=t;$('status').className='status'+(win?' success':'')}
 function snapshot(){undos.push({placement:placement.map(p=>p?{...p}:null),selection,vertical,flip});if(undos.length>100)undos.shift()}
 function place(i){if(ended)return;hintCell=-1;if(cells[i]){rotatePlaced(cells[i].id);return}if(selection===null){message('Drag a domino from the tray, or tap one to select it.');return}if(!tryMove(selection,i,vertical,flip)){message('The domino needs two empty adjacent squares.');return}render();checkWin();save()}
