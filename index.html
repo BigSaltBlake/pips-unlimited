@@ -31,59 +31,58 @@ function tileBoard(){let match=Array(R*C).fill(-1);function rec(){let first=matc
 function generate(){
  difficulty=$('difficulty').value;[R,C]=dims[difficulty];rand=rng((Math.random()*2**32)>>>0);
  const match=tileBoard();if(!match)throw Error('Unable to tile board');
- const n=R*C,edges=[];
- for(let i=0;i<n;i++){if(i%C<C-1)edges.push([i,i+1]);if(Math.floor(i/C)<R-1)edges.push([i,i+C])}
- shuffle(edges);
- // Reserve adjacent equality clues, preferably across distinct dominoes.
- edges.sort((a,b)=>Number(match[a[0]]===a[1])-Number(match[b[0]]===b[1]));
+ const n=R*C,tileSlots=[],slotFor=Array(n).fill(-1),seen=new Set();
+ for(let i=0;i<n;i++){
+  if(seen.has(i))continue;
+  const j=match[i],id=tileSlots.length;
+  seen.add(i);seen.add(j);tileSlots.push([i,j]);slotFor[i]=slotFor[j]=id
+ }
+ // Choose adjacent equal-value cells belonging to different dominoes.
+ // Each equality region uses two new dominoes so all unique-pair assignments are feasible.
+ const edges=[];
+ for(let i=0;i<n;i++){
+  if(i%C<C-1&&slotFor[i]!==slotFor[i+1])edges.push([i,i+1]);
+  if(Math.floor(i/C)<R-1&&slotFor[i]!==slotFor[i+C])edges.push([i,i+C])
+ }
  const equalWanted={easy:2,medium:3,hard:4,expert:5}[difficulty];
- const reserved=new Set(),equalGroups=[];
- for(const [i,j] of edges){
-  if(reserved.has(i)||reserved.has(j))continue;
-  reserved.add(i);reserved.add(j);equalGroups.push([i,j]);
-  if(equalGroups.length===equalWanted)break
- }
- const blankWanted={easy:1,medium:2,hard:3,expert:4}[difficulty];
- const available=shuffle(Array.from({length:n},(_,i)=>i).filter(i=>!reserved.has(i)));
- const freeCells=available.slice(0,blankWanted);
- freeCells.forEach(i=>reserved.add(i));
- const tileSlots=[],seen=new Set();
- for(let i=0;i<n;i++){if(seen.has(i))continue;let j=match[i];seen.add(i);seen.add(j);tileSlots.push([i,j])}
- const allPairs=[];for(let a=0;a<=6;a++)for(let b=a;b<=6;b++)allPairs.push([a,b]);
- let solution=null;
- // Constrained-first search ensures one copy of each unordered domino pair.
- for(let attempt=0;attempt<80&&!solution;attempt++){
-  const preset=Array(n).fill(null);
-  for(const g of equalGroups){const v=Math.floor(rand()*7);g.forEach(i=>preset[i]=v)}
-  const slots=tileSlots.slice().sort((a,b)=>{
-   const count=t=>t.filter(i=>preset[i]!==null).length;
-   return count(b)-count(a)
-  });
-  const candidate=Array(n).fill(null),used=new Set();let nodes=0;
-  function fill(k){
-   if(k===slots.length)return true;
-   if(++nodes>15000)return false;
-   const [i,j]=slots[k],options=[];
-   for(const [a,b] of allPairs){
-    const orientations=a===b?[[a,b]]:[[a,b],[b,a]];
-    for(const [x,y] of orientations){
-     if(preset[i]!==null&&preset[i]!==x)continue;
-     if(preset[j]!==null&&preset[j]!==y)continue;
-     const key=a*7+b;
-     if(!used.has(key))options.push([x,y,key])
-    }
-   }
-   shuffle(options);
-   for(const [a,b,key] of options){
-    used.add(key);candidate[i]=a;candidate[j]=b;
-    if(fill(k+1))return true;
-    used.delete(key);candidate[i]=candidate[j]=null
-   }
-   return false
+ let selected=[];
+ for(let attempt=0;attempt<35;attempt++){
+  const taken=new Set(),picked=[];
+  for(const [i,j] of shuffle(edges.slice())){
+   if(taken.has(slotFor[i])||taken.has(slotFor[j]))continue;
+   picked.push([i,j]);taken.add(slotFor[i]);taken.add(slotFor[j]);
+   if(picked.length===equalWanted)break
   }
-  if(fill(0))solution=candidate
+  if(picked.length>selected.length)selected=picked;
+  if(selected.length===equalWanted)break
  }
- if(!solution)throw Error('Unable to create unique dominoes for equality regions');
+ const equalGroups=selected;
+ const reserved=new Set(equalGroups.flat());
+ const blankWanted={easy:1,medium:2,hard:3,expert:4}[difficulty];
+ const freeCells=shuffle(Array.from({length:n},(_,i)=>i).filter(i=>!reserved.has(i))).slice(0,blankWanted);
+ freeCells.forEach(i=>reserved.add(i));
+ const solution=Array(n).fill(null),used=new Set();
+ const allPairs=[];
+ for(let a=0;a<=6;a++)for(let b=a;b<=6;b++)allPairs.push([a,b]);
+ const eqValues=shuffle([0,1,2,3,4,5,6]);
+ for(let g=0;g<equalGroups.length;g++){
+  const common=eqValues[g];
+  for(const cell of equalGroups[g]){
+   const pair=tileSlots[slotFor[cell]];
+   const options=allPairs.filter(([a,b])=>(a===common||b===common)&&!used.has(a*7+b));
+   if(!options.length)throw Error('Equality domino options exhausted');
+   const [a,b]=options[Math.floor(rand()*options.length)],other=a===common?b:a;
+   used.add(a*7+b);
+   solution[cell]=common;
+   solution[pair[0]===cell?pair[1]:pair[0]]=other
+  }
+ }
+ const remaining=shuffle(allPairs.filter(([a,b])=>!used.has(a*7+b)));
+ for(const [i,j] of tileSlots){
+  if(solution[i]!==null)continue;
+  let [a,b]=remaining.pop();if(rand()<.5)[a,b]=[b,a];
+  solution[i]=a;solution[j]=b
+ }
  pieces=tileSlots.map(([i,j])=>({a:solution[i],b:solution[j],sol:[i,j]}));
  shuffle(pieces);pieces.forEach((p,i)=>p.id=i);
  regions=equalGroups.map(cells=>({cells,type:'equal',target:0,color:null}));
